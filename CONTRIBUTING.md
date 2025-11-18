@@ -25,12 +25,12 @@ This project adheres to a code of conduct that all contributors are expected to 
 1. **Fork the repository** on GitHub
 2. **Clone your fork** locally:
    ```bash
-   git clone https://github.com/your-username/omnilog.git
+   git clone https://github.com/djish/omnilog.git
    cd omnilog
    ```
 3. **Add the upstream remote**:
    ```bash
-   git remote add upstream https://github.com/original-owner/omnilog.git
+   git remote add upstream https://github.com/djish/omnilog.git
    ```
 
 ## Development Setup
