@@ -1,197 +1,192 @@
-# OmniLog
+﻿# OmniLog
 
-A reusable, cross-platform, pluggable logging framework designed for Node.js, React, Angular.
+> Reusable, cross-platform, pluggable logging framework for Node.js, browsers, and modern front-end frameworks.
+
+![status](https://img.shields.io/badge/status-alpha-orange)
+![build](https://img.shields.io/badge/build-npm%20workspaces-blue)
+![license](https://img.shields.io/badge/license-MIT-green)
+
+## Table of Contents
+
+- [Why OmniLog?](#why-omnilog)
+- [Features](#features)
+- [Packages](#packages)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Configuration](#configuration)
+- [Transports](#transports)
+- [Framework Integrations](#framework-integrations)
+- [Buffering & Offline Support](#buffering--offline-support)
+- [Examples](#examples)
+- [Development](#development)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Why OmniLog?
+
+OmniLog gives teams a single logging API that works everywhere: Node.js, React, Angular, Express clients. It uses the same LogEntry schema everywhere so you can pipe logs into any transport and post-process them consistently.
 
 ## Features
 
-- 🎯 **Pluggable Transports** - Console, File, and custom transports
-- 📝 **Named Logger Registry** - Organize logs by module/feature (`getLogger("auth")`)
-- ⚡ **Async Modes** - Sync, await, or background (fire-and-forget)
-- 💾 **Buffering & Batching** - Offline-friendly with in-memory or localStorage stores
-- 🔧 **Global Config with Overrides** - Set defaults, override per-logger
-- 🌐 **Cross-Platform** - Works in Node.js and browsers
-- ⚛️ **Framework Integrations** - React hooks, Angular services, Express middleware
-- 📊 **Structured Logging** - Consistent schema across all transports
+- **Pluggable transports** â€“ console, file (with rotation), custom transports
+- **Named logger registry** â€“ `OmniLog.getLogger("auth")`
+- **Async modes** â€“ `sync`, `await`, `background`
+- **Per-logger overrides** â€“ different log levels per namespace
+- **Buffering** â€“ memory/localStorage stores with flush intervals
+- **Framework addons** â€“ React hooks/context, Angular service & interceptor
+- **Structured schema** â€“ consistent log payloads across languages/environments
+
+## Packages
+
+| Package | Description |
+| --- | --- |
+| `@omnilog/core` | Core logger, types, buffering, registry |
+| `@omnilog/transport-console` | Console transport (Node + browser) |
+| `@omnilog/transport-file` | File transport with rotation (Node only) |
+| `@omnilog/react` | React `LoggerProvider` and `useLogger` hook |
+| `@omnilog/angular` | Angular logger service + HTTP interceptor |
 
 ## Installation
 
 ```bash
 npm install @omnilog/core
-npm install @omnilog/transport-console    # For console output
-npm install @omnilog/transport-file       # For file logging (Node.js only)
-npm install @omnilog/react                 # For React integration
-npm install @omnilog/angular               # For Angular integration
+npm install @omnilog/transport-console    # console output
+npm install @omnilog/transport-file       # file rotation (Node)
+npm install @omnilog/react                # React integration
+npm install @omnilog/angular              # Angular integration
 ```
 
 ## Quick Start
 
-### Basic Usage (Node.js / Browser)
-
-```typescript
+```ts
 import { OmniLog } from "@omnilog/core";
 import { ConsoleTransport } from "@omnilog/transport-console";
 
-// Configure once at app startup
 OmniLog.configure({
   level: "info",
-  env: "development",
+  env: process.env.NODE_ENV,
   asyncMode: "background",
   transports: [
-    new ConsoleTransport({
-      useNativeConsoleMethods: true,
-    }),
+    new ConsoleTransport({ useNativeConsoleMethods: true }),
   ],
-});
-
-// Use the root logger
-OmniLog.info("Application started");
-
-// Create named loggers
-const authLogger = OmniLog.getLogger("auth");
-authLogger.debug("Login attempt", { meta: { userId: 123 } });
-authLogger.error("Login failed", {
-  error: {
-    name: "AuthError",
-    message: "Invalid credentials",
-  },
-});
-```
-
-## Core Concepts
-
-### Log Levels
-
-OmniLog supports four log levels (in order of severity):
-
-- `debug` - Detailed diagnostic information
-- `info` - General informational messages
-- `warn` - Warning messages
-- `error` - Error messages
-
-### Named Loggers
-
-Create loggers for different parts of your application:
-
-```typescript
-const dbLogger = OmniLog.getLogger("database");
-const apiLogger = OmniLog.getLogger("api");
-const uiLogger = OmniLog.getLogger("ui");
-```
-
-### Per-Logger Overrides
-
-Override log levels for specific loggers:
-
-```typescript
-OmniLog.configure({
-  level: "info", // Default level
   overrides: {
-    auth: "debug",    // auth logger shows debug+
-    payments: "warn", // payments logger shows warn+
+    auth: "debug",
   },
-  transports: [new ConsoleTransport()],
 });
+
+// Root logger short-hands
+OmniLog.info("Server booting");
+
+// Named logger
+const authLogger = OmniLog.getLogger("auth");
+authLogger.debug("Login attempt", { meta: { userId: 42 } });
 ```
 
 ### Async Modes
 
-Control how logging behaves:
-
-- `"sync"` - Blocking, waits for all transports
-- `"await"` - Returns a promise you can await
-- `"background"` - Fire-and-forget (default)
-
-```typescript
+```ts
 OmniLog.configure({
-  asyncMode: "await", // Now you can await
+  asyncMode: "await", // "sync" | "await" | "background"
   transports: [new ConsoleTransport()],
 });
 
-await OmniLog.info("This waits for completion");
+await OmniLog.info("This waits for transports to finish");
+```
+
+### Per-Logger Overrides
+
+```ts
+OmniLog.configure({
+  level: "info",
+  overrides: {
+    auth: "debug",
+    payments: "warn",
+  },
+  transports: [new ConsoleTransport()],
+});
+```
+
+## Configuration
+
+```ts
+import { InMemoryBufferStore } from "@omnilog/core";
+
+OmniLog.configure({
+  level: "info",
+  env: "production",
+  asyncMode: "background",
+  transports: [new ConsoleTransport()],
+  overrides: {
+    api: "debug",
+  },
+  buffering: {
+    enabled: true,
+    maxBufferSize: 100,
+    flushIntervalMs: 2000,
+    store: new InMemoryBufferStore(),
+  },
+  onError(error, entry, transportName) {
+    console.error("[OmniLog] transport error", transportName, error, entry);
+  },
+});
 ```
 
 ## Transports
 
-Transports are pluggable output handlers. You can use multiple transports simultaneously.
-
 ### Console Transport
 
-Outputs logs to the console (browser or Node.js):
-
-```typescript
+```ts
 import { ConsoleTransport } from "@omnilog/transport-console";
 
 new ConsoleTransport({
-  useNativeConsoleMethods: true, // Use console.debug/info/warn/error
-  prettyPrint: false,            // Pretty print full entry object
-})
+  useNativeConsoleMethods: true,
+  prettyPrint: false,
+  formatter(entry) {
+    return `${entry.level.toUpperCase()} :: ${entry.message}`;
+  },
+});
 ```
 
-**Options:**
-- `useNativeConsoleMethods?: boolean` - Map to console.debug/info/warn/error (default: `true`)
-- `prettyPrint?: boolean` - Print full entry object (default: `false`)
-- `formatter?: (entry: LogEntry) => unknown` - Custom formatter function
+### File Transport (Node)
 
-### File Transport
-
-Writes logs to files with automatic rotation (Node.js only):
-
-```typescript
+```ts
 import { FileTransport } from "@omnilog/transport-file";
 import { join } from "path";
 
 new FileTransport({
   filePath: join(process.cwd(), "logs", "app.log"),
-  rotateAfterBytes: 5_000_000, // 5MB (default)
-  maxFiles: 5,                 // Keep 5 rotated files (default)
-  encoding: "utf8",            // File encoding (default)
-})
+  rotateAfterBytes: 5_000_000, // default 5MB
+  maxFiles: 5,
+  encoding: "utf8",
+});
 ```
 
-**Features:**
-- Automatic directory creation
-- Size-based rotation (rolling rename: `app.log` → `app.log.1` → `app.log.2`)
-- Sequential writes to prevent corruption
-- Configurable rotation threshold and max files
-
-**Options:**
-- `filePath: string` - **Required** - Path to log file
-- `rotateAfterBytes?: number` - Rotate when file exceeds this size (default: `5_000_000`)
-- `maxFiles?: number` - Maximum rotated files to keep (default: `5`)
-- `encoding?: BufferEncoding` - File encoding (default: `"utf8"`)
+**Rotation** â€“ `app.log` rolls to `app.log.1`, `app.log.2`, â€¦ up to `maxFiles`.
 
 ### Custom Transport
 
-Implement the `LogTransport` interface:
+```ts
+import { LogTransport, LogEntry } from "@omnilog/core";
 
-```typescript
-import { LogEntry, LogTransport } from "@omnilog/core";
-
-class MyCustomTransport implements LogTransport {
+class HttpTransport implements LogTransport {
   async log(entry: LogEntry): Promise<void> {
-    // Send to your logging service
-    await fetch("https://api.logs.com/ingest", {
+    await fetch("https://logging.service/bulk", {
       method: "POST",
+      headers: { "content-type": "application/json" },
       body: JSON.stringify(entry),
     });
   }
 }
-
-OmniLog.configure({
-  transports: [new MyCustomTransport()],
-});
 ```
 
-### Multiple Transports
+Use multiple transports at the same time:
 
-Use multiple transports simultaneously:
-
-```typescript
+```ts
 OmniLog.configure({
   transports: [
-    new ConsoleTransport(), // Console output
-    new FileTransport({ filePath: "logs/app.log" }), // File output
-    new MyCustomTransport(), // Custom service
+    new ConsoleTransport(),
+    new FileTransport({ filePath: "logs/app.log" }),
+    new HttpTransport(),
   ],
 });
 ```
@@ -200,39 +195,27 @@ OmniLog.configure({
 
 ### React
 
-Use the `LoggerProvider` and `useLogger` hook:
-
-```typescript
+```tsx
 import { LoggerProvider, useLogger } from "@omnilog/react";
 
-function App() {
-  return (
-    <LoggerProvider loggerName="ui">
-      <MyComponent />
-    </LoggerProvider>
-  );
-}
+const App = () => (
+  <LoggerProvider loggerName="ui">
+    <HomePage />
+  </LoggerProvider>
+);
 
-function MyComponent() {
+const HomePage = () => {
   const logger = useLogger("home-page");
-
   useEffect(() => {
-    logger.info("Component mounted");
+    logger.info("Home page mounted");
   }, [logger]);
-
-  return <div>Hello</div>;
-}
+  return <button onClick={() => logger.debug("Clicked")}>Click</button>;
+};
 ```
-
-**API:**
-- `<LoggerProvider loggerName?: string>` - Provides a logger to child components
-- `useLogger(name?: string)` - Returns a logger (uses context if no name provided)
 
 ### Angular
 
-Use the `LoggerService` and optional `LoggerHttpInterceptor`:
-
-```typescript
+```ts
 import { NgModule } from "@angular/core";
 import { HTTP_INTERCEPTORS } from "@angular/common/http";
 import {
@@ -244,237 +227,68 @@ import {
 @NgModule({
   providers: [
     LoggerService,
-    {
-      provide: OMNILOG_ANGULAR_CONFIG,
-      useValue: { defaultLoggerName: "ng-ui" },
-    },
-    {
-      provide: HTTP_INTERCEPTORS,
-      useClass: LoggerHttpInterceptor,
-      multi: true,
-    },
+    { provide: OMNILOG_ANGULAR_CONFIG, useValue: { defaultLoggerName: "ng-ui" } },
+    { provide: HTTP_INTERCEPTORS, useClass: LoggerHttpInterceptor, multi: true },
   ],
 })
 export class AppModule {}
 ```
 
-**Usage in Components:**
+Use `LoggerService` inside components/services:
 
-```typescript
-import { Component } from "@angular/core";
-import { LoggerService } from "@omnilog/angular";
+```ts
+constructor(private readonly logger: LoggerService) {}
 
-@Component({ /* ... */ })
-export class MyComponent {
-  constructor(private logger: LoggerService) {}
-
-  ngOnInit() {
-    this.logger.info("Component initialized");
-  }
-
-  handleClick() {
-    this.logger.debug("Button clicked", {
-      meta: { action: "click" },
-    });
-  }
+ngOnInit() {
+  this.logger.info("Component ready");
 }
 ```
 
-**API:**
-- `LoggerService` - Injectable service with `getLogger(name?)` and convenience methods
-- `LoggerHttpInterceptor` - Logs HTTP requests/responses with duration
-- `OMNILOG_ANGULAR_CONFIG` - Injection token for configuration
+## Buffering & Offline Support
 
-## Configuration
-
-### Full Configuration Options
-
-```typescript
-OmniLog.configure({
-  // Required
-  transports: [new ConsoleTransport()],
-
-  // Logging
-  level: "info", // Default log level
-  env: "development", // Environment name
-  asyncMode: "background", // "sync" | "await" | "background"
-
-  // Per-logger overrides
-  overrides: {
-    auth: "debug",
-    payments: "warn",
-  },
-
-  // Buffering (optional)
-  buffering: {
-    enabled: true,
-    maxBufferSize: 100,
-    flushIntervalMs: 2000,
-    store: new InMemoryBufferStore(), // or LocalStorageBufferStore
-  },
-
-  // Error handling
-  onError(error, entry, transportName) {
-    console.error("Transport error:", transportName, error);
-  },
-});
-```
-
-### Buffering
-
-Buffer logs for offline scenarios or batching:
-
-```typescript
+```ts
 import { InMemoryBufferStore } from "@omnilog/core";
 
 OmniLog.configure({
   buffering: {
     enabled: true,
-    maxBufferSize: 100,        // Flush when buffer exceeds this
-    flushIntervalMs: 2000,     // Periodic flush interval
-    store: new InMemoryBufferStore(), // Storage implementation
+    maxBufferSize: 100,
+    flushIntervalMs: 2000,
+    store: new InMemoryBufferStore(),
   },
   transports: [new ConsoleTransport()],
 });
 ```
 
-**Buffer Stores:**
-- `InMemoryBufferStore` - In-memory storage (Node.js & browser)
-- `LocalStorageBufferStore` - Browser localStorage (browser only)
-
-## Log Entry Schema
-
-All logs follow a consistent schema:
-
-```typescript
-interface LogEntry {
-  id: string;                    // Unique log ID
-  timestamp: string;              // ISO 8601 timestamp
-  level: "debug" | "info" | "warn" | "error";
-  message: string;                // Log message
-  loggerName: string;             // Logger name
-  tags?: string[];                // Optional tags
-  context?: Record<string, unknown>; // Contextual data
-  meta?: Record<string, unknown>;   // Additional metadata
-  error?: {                       // Error information
-    name?: string;
-    message?: string;
-    stack?: string;
-  };
-  env?: string;                  // Environment name
-  correlationId?: string;         // Request correlation ID
-}
-```
+**Stores**
+- `InMemoryBufferStore` â€“ default, works everywhere
+- `LocalStorageBufferStore` â€“ browser-only persistence (future)
 
 ## Examples
 
-### Node.js with File Logging
+The `examples/` folder contains ready-to-run demos:
 
-```typescript
-import { OmniLog } from "@omnilog/core";
-import { ConsoleTransport } from "@omnilog/transport-console";
-import { FileTransport } from "@omnilog/transport-file";
-import { join } from "path";
+- `examples/node-basic.ts` â€“ core + console
+- `examples/node-file.ts` â€“ file transport with rotation
+- `examples/react-basic.tsx` â€“ React provider & hook
+- `examples/angular-usage.md` â€“ Angular module wiring
 
-OmniLog.configure({
-  level: "info",
-  asyncMode: "await",
-  transports: [
-    new ConsoleTransport(),
-    new FileTransport({
-      filePath: join(process.cwd(), "logs", "app.log"),
-      rotateAfterBytes: 1_000_000, // 1MB
-      maxFiles: 5,
-    }),
-  ],
-});
+Run Node examples with [tsx](https://github.com/esbuild-kit/tsx) or ts-node:
 
-const logger = OmniLog.getLogger("server");
-await logger.info("Server started", { meta: { port: 3000 } });
-```
-
-### React with Context
-
-```typescript
-import { LoggerProvider, useLogger } from "@omnilog/react";
-
-function App() {
-  return (
-    <LoggerProvider loggerName="app">
-      <HomePage />
-    </LoggerProvider>
-  );
-}
-
-function HomePage() {
-  const logger = useLogger("home");
-
-  useEffect(() => {
-    logger.info("Page loaded");
-  }, [logger]);
-
-  return <div>Home</div>;
-}
-```
-
-### Error Logging
-
-```typescript
-try {
-  await riskyOperation();
-} catch (error) {
-  logger.error("Operation failed", {
-    error: {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-    },
-    meta: {
-      operation: "riskyOperation",
-      userId: 123,
-    },
-  });
-}
-```
-
-### Structured Logging
-
-```typescript
-logger.info("User action", {
-  tags: ["user", "action"],
-  context: {
-    userId: 123,
-    sessionId: "abc-123",
-  },
-  meta: {
-    action: "click",
-    target: "button",
-    timestamp: Date.now(),
-  },
-  correlationId: "req-456",
-});
-```
-
-## Package Structure
-
-```
-omnilog/
-├── packages/
-│   ├── core/                    # @omnilog/core
-│   ├── transport-console/       # @omnilog/transport-console
-│   ├── transport-file/          # @omnilog/transport-file
-│   ├── react/                   # @omnilog/react
-│   └── angular/                 # @omnilog/angular
-└── examples/                    # Usage examples
+```bash
+npx tsx examples/node-file.ts
 ```
 
 ## Development
 
 ```bash
-# Build all packages
+# Install all dependencies
+npm install
+
+# Build everything
 npm run build
 
-# Build specific package
+# Build individual workspace packages
 npm run build:core
 npm run build:console
 npm run build:file
@@ -482,11 +296,12 @@ npm run build:react
 npm run build:angular
 ```
 
-## License
-
-MIT
+The monorepo uses npm workspaces (no lerna). All TypeScript configs extend `tsconfig.base.json`.
 
 ## Contributing
 
-Contributions welcome! Please see the contributing guidelines.
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on branching, code style, transports, and integrations.
 
+## License
+
+MIT Â© 2025 OmniLog contributors
