@@ -1,0 +1,31 @@
+﻿{
+  "name": "@omnilog/transport-console",
+  "version": "0.1.0",
+  "description": "Console transport for the OmniLog framework",
+  "keywords": ["logging", "console", "transport"],
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -w -p tsconfig.build.json",
+    "clean": "rimraf dist",
+    "lint": "echo \"No linter configured yet\"",
+    "test": "echo \"No tests yet\""
+  },
+  "dependencies": {
+    "@omnilog/core": "0.1.0"
+  },
+  "devDependencies": {
+    "rimraf": "^5.0.5"
+  }
+}

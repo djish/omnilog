@@ -1,0 +1,22 @@
+﻿{
+  "name": "omnilog",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Monorepo for the OmniLog logging framework",
+  "scripts": {
+    "build": "npm run build:core && npm run build:console && npm run build:react && npm run build:angular && npm run build:file",
+    "build:core": "npm run -w @omnilog/core build",
+    "build:console": "npm run -w @omnilog/transport-console build",
+    "build:react": "npm run -w @omnilog/react build",
+    "build:angular": "npm run -w @omnilog/angular build",
+    "build:file": "npm run -w @omnilog/transport-file build",
+    "lint": "npm run -w @omnilog/core lint",
+    "test": "npm run -w @omnilog/core test"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}

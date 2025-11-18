@@ -1,0 +1,18 @@
+﻿{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ES2020",
+    "moduleResolution": "Node",
+    "baseUrl": ".",
+    "paths": {
+      "@omnilog/core": ["packages/core/src"],
+      "@omnilog/transport-console": ["packages/transport-console/src"]
+    },
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "declaration": true,
+    "sourceMap": true
+  }
+}
