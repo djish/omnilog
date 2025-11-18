@@ -1,6 +1,6 @@
 # OmniLog
 
-A reusable, cross-platform, pluggable logging framework designed for Node.js, React, Angular, and future Python/Java ecosystems.
+A reusable, cross-platform, pluggable logging framework designed for Node.js, React, Angular.
 
 ## Features
 
